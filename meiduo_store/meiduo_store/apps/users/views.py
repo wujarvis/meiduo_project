@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.views import View
 from django import http
-import re
+import re, json, logging
 from django.db import DatabaseError
 from django.urls import reverse
 from django.contrib.auth import login, authenticate, logout
@@ -10,7 +10,37 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 
 from users.models import User
 from meiduo_mall.utils.response_code import RETCODE
+from meiduo_mall.utils.views import LoginRequiredJSONMixin
 # Create your views here.
+
+
+# 创建日志输出器
+logger = logging.getLogger('django')
+
+
+class EmailView(LoginRequiredJSONMixin, View):
+    """添加邮箱"""
+
+    def put(self, request):
+        # 接收参数
+        json_str = request.body.decode() # body 类型是bytes
+        json_dict = json.loads(json_str)
+        email = json_dict.get('email')
+
+        # 校验参数
+        if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$', email):
+            return http.HttpResponseForbidden('参数email有误')
+
+        # 将用户传入的邮箱保存到用户数据库的email字段中
+        try:
+            request.user.email = email
+            request.user.save()
+        except Exception as e:
+            logger.error(e)
+            return http.JsonResponse({'code': RETCODE.DBERR, 'errmsg': '添加邮箱失败'})
+
+        # 响应结果
+        return http.JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK'})
 
 
 class UserInfoView(LoginRequiredMixin, View):
@@ -18,12 +48,14 @@ class UserInfoView(LoginRequiredMixin, View):
 
     def get(self,request):
         """提供用户中心页面"""
-        # if request.user.is_authenticated:
-        #     return render(request, 'user_center_info.html')
-        # else:
-        #     return redirect(reverse('users:login'))
-
-        return render(request, 'user_center_info.html')
+        # 如果LoginRequiredMixin判断出用户已登录，那么request.user就是登陆用户对象
+        context = {
+            'username': request.user.username,
+            'mobile': request.user.mobile,
+            'email': request.user.email,
+            'email_active': request.user.email_active
+        }
+        return render(request, 'user_center_info.html', context)
 
 
 class LogoutView(View):
