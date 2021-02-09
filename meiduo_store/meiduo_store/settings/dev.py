@@ -43,7 +43,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'users',   # 注册用户模块
+    'users',  # 注册用户模块
+    'contents',  # 首页广告模块
+    'verifications',  # 验证码模块
 ]
 
 MIDDLEWARE = [
