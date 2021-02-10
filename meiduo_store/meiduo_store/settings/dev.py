@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'contents',  # 首页广告模块
     'verifications',  # 验证码模块
     'oauth',  # 第三方登录
+    'areas',  # 省市区三级联动
 ]
 
 MIDDLEWARE = [
@@ -229,5 +230,8 @@ EMAIL_PORT = 25 # 发邮件端口
 EMAIL_HOST_USER = 'dailyfreshzxc@yeah.net' # 授权的邮箱
 EMAIL_HOST_PASSWORD = 'dailyfresh123' # 邮箱授权时获得的密码，非注册登录密码
 EMAIL_FROM = '美多商城<dailyfreshzxc@yeah.net>' # 发件人抬头
+
+# 邮箱验证链接
+EMAIL_VERIFY_URL = 'http://www.meiduo.site:8000/emails/verification/'
 
 

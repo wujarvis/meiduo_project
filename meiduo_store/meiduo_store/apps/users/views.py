@@ -11,11 +11,48 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from users.models import User
 from meiduo_mall.utils.response_code import RETCODE
 from meiduo_mall.utils.views import LoginRequiredJSONMixin
+from celery_tasks.email.tasks import send_verify_email
+from users.utils import generate_verify_email_url, check_verify_email_token
 # Create your views here.
 
 
 # 创建日志输出器
 logger = logging.getLogger('django')
+
+
+class AddressView(LoginRequiredMixin, View):
+    """用户收货地址"""
+
+    def get(self, request):
+        return render(request, 'user_center_site.html')
+
+
+class VerifyEmailView(View):
+    """验证邮箱"""
+
+    def get(self, request):
+        # 接收参数
+        token = request.GET.get('token')
+
+        # 校验参数
+        if not token:
+            return http.HttpResponseForbidden('缺少token')
+
+        # 从token中提取用户信息user_id ==> user
+        user = check_verify_email_token(token)
+        if not user:
+            return http.HttpResponseBadRequest('无效的token')
+
+        # 将用户的email_active字段设置为True
+        try:
+            user.email_active = True
+            user.save()
+        except Exception as e:
+            logger.error(e)
+            return http.HttpResponseServerError('激活邮箱失败')
+
+        # 响应结果：重定向到用户中心
+        return redirect(reverse('users:info'))
 
 
 class EmailView(LoginRequiredJSONMixin, View):
@@ -38,6 +75,11 @@ class EmailView(LoginRequiredJSONMixin, View):
         except Exception as e:
             logger.error(e)
             return http.JsonResponse({'code': RETCODE.DBERR, 'errmsg': '添加邮箱失败'})
+
+        # 发送邮箱验证邮件
+        verify_url = generate_verify_email_url(request.user)
+        # send_verify_email(email, verify_url) # 错误的写法
+        send_verify_email.delay(email, verify_url) # 一定要记得调用delay
 
         # 响应结果
         return http.JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK'})
