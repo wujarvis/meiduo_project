@@ -9,8 +9,8 @@ from django_redis import get_redis_connection
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from users.models import User, Address
-from meiduo_mall.utils.response_code import RETCODE
-from meiduo_mall.utils.views import LoginRequiredJSONMixin
+from meiduo_store.utils.response_code import RETCODE
+from meiduo_store.utils.views import LoginRequiredJSONMixin
 from celery_tasks.email.tasks import send_verify_email
 from users.utils import generate_verify_email_url, check_verify_email_token
 from . import constants
