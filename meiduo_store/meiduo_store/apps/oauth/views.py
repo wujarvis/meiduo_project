@@ -8,7 +8,7 @@ from django.contrib.auth import login
 from django.urls import reverse
 from django_redis import get_redis_connection
 
-from meiduo_mall.utils.response_code import RETCODE
+from meiduo_store.utils.response_code import RETCODE
 from oauth.models import OAuthQQUser
 from oauth.utils import generate_access_token, check_access_token
 from users.models import User

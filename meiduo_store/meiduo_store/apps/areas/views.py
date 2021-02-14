@@ -5,7 +5,7 @@ import logging
 from django.core.cache import cache
 
 from areas.models import Area
-from meiduo_mall.utils.response_code import RETCODE
+from meiduo_store.utils.response_code import RETCODE
 # Create your views here.
 
 

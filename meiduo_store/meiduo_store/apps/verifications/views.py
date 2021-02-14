@@ -6,7 +6,7 @@ import random, logging
 
 from verifications.libs.captcha.captcha import captcha
 from . import constants
-from meiduo_mall.utils.response_code import RETCODE
+from meiduo_store.utils.response_code import RETCODE
 from verifications.libs.yuntongxun.ccp_sms import CCP
 # Create your views here.
 
