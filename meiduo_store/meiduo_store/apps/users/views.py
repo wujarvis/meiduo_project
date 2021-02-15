@@ -14,11 +14,63 @@ from meiduo_store.utils.views import LoginRequiredJSONMixin
 from celery_tasks.email.tasks import send_verify_email
 from users.utils import generate_verify_email_url, check_verify_email_token
 from . import constants
+from goods.models import SKU
 # Create your views here.
 
 
 # 创建日志输出器
 logger = logging.getLogger('django')
+
+
+class UserBrowseHistory(LoginRequiredJSONMixin, View):
+    """用户的商品浏览记录"""
+    def post(self, request):
+        '''保存浏览记录'''
+        # 接收参数
+        json_dict = json.loads(request.body.decode())
+        sku_id = json_dict.get('sku_id')
+
+        # 校验参数
+        try:
+            SKU.objects.get(id=sku_id)
+        except SKU.DoesNotExist:
+            return http.HttpResponseForbidden('sku不存在')
+
+        # redis保存浏览记录
+        redis_conn = get_redis_connection('history')
+        user_id = request.user.id
+        pl = redis_conn.pipeline() # 使用管道增加效率
+        # 去重
+        pl.lrem('history_%s' % user_id, 0, sku_id) # lrem(key, count, value)
+        # 储存
+        pl.lpush('history_%s' % user_id, sku_id)
+        # 截取
+        pl.ltrim('history_%s' % user_id, 0, 4)  # 保存最近的五条记录
+        # 执行管道
+        pl.execute()
+        return http.JsonResponse({'code':RETCODE.OK, 'errmsg':'OK'})
+
+    def get(self, request):
+        '''查询浏览记录'''
+        # 取出redis中储存的sku_id
+        redis_conn = get_redis_connection('history')
+        user_id = request.user.id
+        sku_ids = redis_conn.lrange('history_%s' % user_id, 0, -1)
+        skus = []
+        for sku_id in sku_ids:
+            sku = SKU.objects.get(id=sku_id)
+            skus.append(
+                {'id':sku_id,
+                 'name':sku.name,
+                 'default_image_url':sku.default_image.url,
+                 'price':sku.price}
+            )
+        return http.JsonResponse({'code':RETCODE.OK,'errmsg':'OK', 'skus':skus})
+
+
+
+
+
 
 
 class UpdateTitleAddressView(LoginRequiredJSONMixin, View):

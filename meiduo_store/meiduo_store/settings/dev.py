@@ -115,14 +115,28 @@ DATABASES = {
 CACHES = {
     "default": {  # 默认
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://1.15.115.214/0",
+        "LOCATION": "redis://1.15.115.214:6379/0",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     },
     "session": {  # session
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://1.15.115.214/1",
+        "LOCATION": "redis://1.15.115.214:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    },
+    "verify_code": {  # 验证码
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://1.15.115.214:6379/2",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    },
+    "history": {  # 浏览记录
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://1.15.115.214:6379/3",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
@@ -245,8 +259,8 @@ FDFS_BASE_URL = 'http://192.168.103.143:8888/'
 HAYSTACK_CONNECTIONS = {
     'default': {
         'ENGINE': 'haystack.backends.elasticsearch_backend.ElasticsearchSearchEngine',
-        'URL': 'http://1.15.115.214:9200/', # Elasticsearch服务器ip地址，端口号固定为9200
-        'INDEX_NAME': 'meiduo_store', # Elasticsearch建立的索引库的名称
+        'URL': 'http://1.15.115.214:9200/',  # Elasticsearch服务器ip地址，端口号固定为9200
+        'INDEX_NAME': 'meiduo_store',  # Elasticsearch建立的索引库的名称
     },
 }
 
