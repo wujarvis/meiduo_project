@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'areas',  # 省市区三级联动
     'goods',  # 商品模块
     'haystack',  # 全文检索
+    'carts',  # 购物车模块
 ]
 
 MIDDLEWARE = [
@@ -137,6 +138,13 @@ CACHES = {
     "history": {  # 浏览记录
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": "redis://1.15.115.214:6379/3",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    },
+    "carts": {  # 购物车
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://1.15.115.214:6379/4",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }

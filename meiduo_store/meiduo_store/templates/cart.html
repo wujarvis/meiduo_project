@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
-    <title>美多商城-用户中心</title>
+    <title>美多商城-购物车</title>
     <link rel="stylesheet" type="text/css" href="{{ static('css/reset.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ static('css/main.css') }}">
     <script type="text/javascript" src="{{ static('js/vue-2.5.16.js') }}"></script>
@@ -51,59 +51,38 @@
             </ul>
         </div>
     </div>
-    <div class="main_con clearfix">
-        <div class="left_menu_con clearfix">
-            <h3>用户中心</h3>
-            <ul>
-                <li><a href="{{ url('users:info') }}" class="active">· 个人信息</a></li>
-                <li><a href="{{ url('users:address') }}">· 收货地址</a></li>
-                <li><a href="user_center_order.html">· 全部订单</a></li>
-                <li><a href="user_center_pass.html">· 修改密码</a></li>
-            </ul>
-        </div>
-        <div class="right_content clearfix" v-cloak>
-            <div class="info_con clearfix">
-                <h3 class="common_title2">基本信息</h3>
-                <ul class="user_info_list">
-                    <li><span>用户名：</span>[[ username ]]</li>
-                    <li><span>联系方式：</span>[[ mobile ]]</li>
-                    <li>
-                        <span>Email：</span>
-                        <div v-if="set_email">
-                            <input v-model="email" @blur="check_email" type="email" name="email" class="email">
-                            <input @click="save_email" type="button" name="" value="保 存">
-                            <input @click="cancel_email" type="reset" name="" value="取 消">
-                            <div v-show="error_email" class="error_email_tip">邮箱格式错误</div>
-                        </div>
-                        <div v-else>
-                            <input v-model="email" type="email" name="email" class="email" readonly>
-                            <div v-if="email_active">
-                                已验证
-                            </div>
-                            <div v-else>
-                                待验证<input @click="save_email" :disabled="send_email_btn_disabled" type="button"
-                                          :value="send_email_tip">
-                            </div>
-                        </div>
-                    </li>
-                </ul>
+    <div class="total_count">全部商品<em>[[ total_count ]]</em>件</div>
+    <ul class="cart_list_th clearfix">
+        <li class="col01">商品名称</li>
+        <li class="col03">商品价格</li>
+        <li class="col04">数量</li>
+        <li class="col05">小计</li>
+        <li class="col06">操作</li>
+    </ul>
+    <ul class="cart_list_td clearfix" v-for="(cart_sku,index) in carts" v-cloak>
+        <li class="col01"><input type="checkbox" name="" v-model="cart_sku.selected" @change="update_selected(index)">
+        </li>
+        <li class="col02"><img :src="cart_sku.default_image_url"></li>
+        <li class="col03">[[ cart_sku.name ]]</li>
+        <li class="col05">[[ cart_sku.price ]]元</li>
+        <li class="col06">
+            <div class="num_add">
+                <a @click="on_minus(index)" class="minus fl">-</a>
+                <input v-model="cart_sku.count" @blur="on_input(index)" type="text" class="num_show fl">
+                <a @click="on_add(index)" class="add fl">+</a>
             </div>
-            <h3 class="common_title2">最近浏览</h3>
-            <div class="has_view_list" v-cloak>
-                <ul class="goods_type_list clearfix">
-                    <li v-for="sku in histories">
-                        <a :href="sku.url"><img :src="sku.default_image_url"></a>
-                        <h4><a :href="sku.url">[[ sku.name ]]</a></h4>
-                        <div class="operate">
-                            <span class="price">￥[[ sku.price ]]</span>
-                            <span class="unit">台</span>
-                            <a href="javascript:;" class="add_goods" title="加入购物车"></a>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
+        </li>
+        <li class="col07">[[ cart_sku.amount ]]元</li>
+        <li class="col08"><a @click="on_delete(index)">删除</a></li>
+    </ul>
+    <ul class="settlements" v-cloak>
+        <li class="col01"><input type="checkbox" name="" @change="on_selected_all" v-model="selected_all"></li>
+        <li class="col02">全选</li>
+        <li class="col03">合计(不含运费)：<span>¥</span><em>[[ total_selected_amount ]]</em><br>共计<b>[[ total_selected_count
+            ]]</b>件商品
+        </li>
+        <li class="col04"><a href="place_order.html">去结算</a></li>
+    </ul>
     <div class="footer">
         <div class="foot_link">
             <a href="#">关于我们</a>
@@ -119,12 +98,9 @@
     </div>
 </div>
 <script type="text/javascript">
-    let username = "{{ username }}";
-    let mobile = "{{ mobile }}";
-    let email = "{{ email }}";
-    let email_active = "{{ email_active }}";
+    let carts = "{{ cart_skus | safe }}";
 </script>
 <script type="text/javascript" src="{{ static('js/common.js') }}"></script>
-<script type="text/javascript" src="{{ static('js/user_center_info.js') }}"></script>
+<script type="text/javascript" src="{{ static('js/cart.js') }}"></script>
 </body>
 </html>
