@@ -9,6 +9,55 @@ from meiduo_store.utils.response_code import RETCODE
 
 
 # Create your views here.
+class CartsSelectedAllView(View):
+    """全选购物车"""
+
+    def put(self, request):
+        # 接收参数
+        json_dict = json.loads(request.body.decode)
+        selected = json_dict.get('selected', True)
+        # # 校验参数
+        if selected:
+            if not isinstance(selected, bool):
+                return http.HttpResponseForbidden('参数selected有误')
+        # 登录用户全选购物车
+        user = request.user
+        if user.is_authenticated:
+            redis_conn = get_redis_connection('carts')
+            pl = redis_conn.pipeline()
+            carts = pl.hgetall('carts_%s' % user.id)
+            sku_ids = carts.keys()
+            # 判断用户是否全选
+            if selected:
+                pl.sadd('selected_%s' % user.id, *sku_ids)
+            else:  # 取消全选
+                pl.srem('selected_%s' % user.id, *sku_ids)
+
+            # 响应结果
+            return http.JsonResponse({'code':RETCODE.OK, 'errmsg':'OK'})
+        else:
+            # 未登录用户全选购物车
+            response = http.JsonResponse({'code':RETCODE.OK, 'errmsg':'OK'})
+            cart_str = request.COOKIES.get('carts')
+            if cart_str:
+                # 将cart_str字符串转换成cart_bytes_str
+                cart_bytes_str = cart_str.encode()
+                # 将cart_bytes_str字符串转换成bytes类型的字典
+                cart_bytes_dict = base64.b64decode(cart_bytes_str)
+                # 将cart_bytes_dict转换为真正的字典
+                cart_dict = pickle.loads(cart_bytes_dict)
+
+                for sku_id in cart_dict:
+                    cart_dict[sku_id]['selected'] = selected #True/False
+
+                cart_bytes_dict = pickle.dumps(cart_dict)
+                cart_bytes_str = base64.b64encode(cart_bytes_dict)
+                cart_str = cart_bytes_str.decode()
+                response.set_cookie('carts', cart_str)
+            return response
+
+
+
 class CartsView(View):
     """购物车"""
 
@@ -237,7 +286,7 @@ class CartsView(View):
             pl.srem('selected_%s' % user.id, sku_id)  # 删除勾选状态
             pl.execute()
 
-            return http.JsonResponse({'code':RETCODE.OK, 'errmsg':'OK'})
+            return http.JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK'})
         else:
             # 用户未登录，删除cookie购物车
             cart_str = request.COOKIES.get('carts')
@@ -251,14 +300,13 @@ class CartsView(View):
             else:  # 没有购物车数据
                 cart_dict = {}
 
-            response = http.JsonResponse({'code':RETCODE.OK, 'errmsg':'OK'})
+            response = http.JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK'})
             if sku_id in cart_dict:
                 del cart_dict[sku_id]  # 删除指定的商品
                 # 将字典类型的购物车数据转换为可以存入到cookie的文件
                 cart_bytes_dict = pickle.dumps(cart_dict)
                 cart_bytes_str = base64.b64encode(cart_bytes_dict)
                 cart_str = cart_bytes_str.decode()
-                response = http.JsonResponse({'code': RETCODE.OK, 'errmsg': '修改购物车成功', 'cart_sku': cart_sku})
                 response.set_cookie('carts', cart_str)
 
             return response
