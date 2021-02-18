@@ -17,6 +17,21 @@ from meiduo_store.utils.response_code import RETCODE
 
 
 # Create your views here.
+class OrderSuccessView(LoginRequiredMixin, View):
+    """提交订单成功,展示订单页面"""
+
+    def get(self, request):
+        order_id = request.GET.get('order_id')
+        payment_amount = request.GET.get('payment_amount')
+        pay_method = request.GET.get('pay_method')
+
+        context = {
+            'order_id':order_id,
+            'payment_amount':payment_amount,
+            'pay_method':pay_method
+        }
+        return render(request, 'order_success.html', context)
+
 class OrderCommitView(LoginRequiredJSONMixin, View):
     """订单提交"""
     def post(self,request):
