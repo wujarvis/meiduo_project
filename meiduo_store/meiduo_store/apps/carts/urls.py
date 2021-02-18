@@ -9,5 +9,5 @@ urlpatterns = [
     # 全选商品
     url(r'^carts/selection', views.CartsSelectedAllView.as_view()),
     # 展示简单购物车
-    url('r^carts/simple/', )
+    url('r^carts/simple/', views.CartsSimpleView.as_view())
 ]
