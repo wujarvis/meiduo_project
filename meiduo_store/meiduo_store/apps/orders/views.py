@@ -1,26 +1,69 @@
 from decimal import Decimal
+from django.core.paginator import Paginator, EmptyPage
 from django.shortcuts import render
 from django.utils import timezone
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
-from  django_redis import get_redis_connection
+from django_redis import get_redis_connection
 import json
 from django import http
 from django.db import transaction
 import logging
-
 
 from users.models import Address
 from goods.models import SKU
 from meiduo_store.utils.views import LoginRequiredJSONMixin
 from .models import OrderInfo, OrderGoods
 from meiduo_store.utils.response_code import RETCODE
-
-
+from . import constants
 
 # Create your views here.
 # 创建日志生成器
 logger = logging.getLogger('django')
+
+
+class UserOrderInfoView(LoginRequiredMixin, View):
+    """展示我的订单"""
+
+    def get(self, request, page_num):
+        # 提供我的订单页面
+        user = request.user
+        # 查询订单
+        orders = user.orderinfo_set.all().order_by('-create_time')  # 按时间逆序
+        # 遍历所有订单
+        for order in orders:
+            # 绑定订单状态
+            order.status_name = OrderInfo.ORDER_STATUS_CHOICES[order.status - 1][1]
+            # 绑定支付方式
+            order.pay_method_name = OrderInfo.PAY_METHOD_CHOICES[order.pay_method - 1][1]
+            order.sku_list = []
+            # 查询订单商品
+            order_goods = order.skus.all()
+            # 遍历订单商品
+            for order_good in order_goods:
+                sku = order_good.sku
+                sku.count = order_good.count
+                sku.amount = sku.price * sku.count
+                order.sku_list.append(sku)
+
+        # 分页
+        page_num = int(page_num)
+        try:
+            paginator = Paginator(orders, constants.ORDERS_LIST_LIMIT)
+            page_orders = paginator.page(page_num)
+            total_page = paginator.num_pages
+        except EmptyPage:
+            return http.HttpResponseNotFound('订单不存在')
+
+        context = {
+            "page_orders": page_orders,
+            'total_page': total_page,
+            'page_num': page_num,
+        }
+        return render(request, "user_center_order.html", context)
+
+
+
 
 class OrderSuccessView(LoginRequiredMixin, View):
     """提交订单成功,展示订单页面"""
@@ -31,15 +74,17 @@ class OrderSuccessView(LoginRequiredMixin, View):
         pay_method = request.GET.get('pay_method')
 
         context = {
-            'order_id':order_id,
-            'payment_amount':payment_amount,
-            'pay_method':pay_method
+            'order_id': order_id,
+            'payment_amount': payment_amount,
+            'pay_method': pay_method
         }
         return render(request, 'order_success.html', context)
 
+
 class OrderCommitView(LoginRequiredJSONMixin, View):
     """订单提交"""
-    def post(self,request):
+
+    def post(self, request):
         # 保存订单 信息和订单商品信息
         # 获取当前要保存的订单数据
         json_dict = json.loads(request.body.decode())
@@ -76,7 +121,8 @@ class OrderCommitView(LoginRequiredJSONMixin, View):
                     total_amount=Decimal('0'),
                     freight=Decimal('10.00'),
                     pay_method=pay_method,
-                    status=OrderInfo.ORDER_STATUS_ENUM['UNPAID'] if pay_method == OrderInfo.PAY_METHODS_ENUM['ALIPAY'] else
+                    status=OrderInfo.ORDER_STATUS_ENUM['UNPAID'] if pay_method == OrderInfo.PAY_METHODS_ENUM[
+                        'ALIPAY'] else
                     OrderInfo.ORDER_STATUS_ENUM['UNSEND']
                 )
                 # 从redis读取购物车中被勾选的商品信息
@@ -114,7 +160,8 @@ class OrderCommitView(LoginRequiredJSONMixin, View):
                         new_stock = origin_stock - sku_count
                         new_sales = origin_sales + sku_count
                         # 使用乐观锁更新库存和销量
-                        result = SKU.objects.filter(id=sku_id, stock=origin_stock).update(stock=new_stock, sales=new_sales)
+                        result = SKU.objects.filter(id=sku_id, stock=origin_stock).update(stock=new_stock,
+                                                                                          sales=new_sales)
                         # 若果在更新数据时，result = 0,表示原始数据变化了，有资源抢夺
                         if result == 0:
                             # 跳过当前下单，继续下单，直到库存不足或result != 0
@@ -145,7 +192,7 @@ class OrderCommitView(LoginRequiredJSONMixin, View):
             except Exception as e:
                 logger.error(e)
                 transaction.savepoint_rollback(save_id)
-                return http.JsonResponse({'code':RETCODE.DBERR, 'errmsg':'下单失败'})
+                return http.JsonResponse({'code': RETCODE.DBERR, 'errmsg': '下单失败'})
 
             # 提交订单成功，提交一次事务
             transaction.savepoint_commit(save_id)
@@ -162,6 +209,7 @@ class OrderCommitView(LoginRequiredJSONMixin, View):
 
 class OrderSettlementView(LoginRequiredMixin, View):
     """订单视图"""
+
     def get(self, request):
         # 提供登录用户信息
         user = request.user
@@ -191,7 +239,7 @@ class OrderSettlementView(LoginRequiredMixin, View):
         skus = SKU.objects.filter(id__in=new_carts.keys())
         for sku in skus:  # 为商品增加count和amount属性
             sku.count = new_carts[sku.id]
-            sku.amount = sku.count*sku.price
+            sku.amount = sku.count * sku.price
             total_count += sku.count
             total_amount += sku.amount
         # 补充运费
@@ -199,12 +247,12 @@ class OrderSettlementView(LoginRequiredMixin, View):
 
         # 构建上下文
         context = {
-            'address':address,
-            'skus':skus,
-            'total_count':total_amount,
-            'total_amount':total_count,
-            'fright':fright,
-            'payment_amount':total_amount + fright,
+            'address': address,
+            'skus': skus,
+            'total_count': total_amount,
+            'total_amount': total_count,
+            'fright': fright,
+            'payment_amount': total_amount + fright,
         }
         # 展示订单页面
         return render(request, 'place_order.html', context=context)
