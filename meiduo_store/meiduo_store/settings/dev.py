@@ -106,6 +106,7 @@ WSGI_APPLICATION = 'meiduo_store.wsgi.application'
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
 DATABASES = {
+    # 主机数据库，写
     'default': {
         'ENGINE': 'django.db.backends.mysql',  # 数据库引擎
         'HOST': '1.15.115.214',  # 数据库主机
@@ -114,7 +115,17 @@ DATABASES = {
         'PASSWORD': 'Wu126084',  # 数据库用户密码
         'NAME': 'meiduo'  # 数据库名字
     },
+    # 从机数据库，读
+    'slave': {
+        'ENGINE': 'django.db.backends.mysql',  # 数据库引擎
+        'HOST': '1.15.115.214',  # 数据库主机
+        'PORT': 8306,  # 数据库端口
+        'USER': 'root',  # 数据库用户名
+        'PASSWORD': 'Wu126084',  # 数据库用户密码
+        'NAME': 'meiduo'  # 数据库名字
+    },
 }
+
 # 配置Redis数据库
 CACHES = {
     "default": {  # 默认
@@ -290,9 +301,12 @@ ALIPAY_RETURN_URL = 'http://www.meiduo.site:8000/payment/status/'
 # 定时器配置
 CRONJOBS = [
     # 每1分钟生成一次首页静态文件
-    ('*/1 * * * *', 'contents.crons.generate_static_index_html', '>> ' + os.path.join(os.path.dirname(BASE_DIR), 'logs/crontab.log'))
+    ('*/1 * * * *', 'contents.crons.generate_static_index_html',
+     '>> ' + os.path.join(os.path.dirname(BASE_DIR), 'logs/crontab.log'))
 ]
 
 # 指定中文编码格式
 CRONTAB_COMMAND_PREFIX = 'LANG_ALL=zh_cn.UTF-8'
 
+# 配置数据库的读写路由
+DATABASE_ROUTERS = ['meiduo_mall.utils.db_router.MasterSlaveDBRouter']
