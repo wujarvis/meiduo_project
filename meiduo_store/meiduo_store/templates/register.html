@@ -57,7 +57,7 @@
                             <a @click="send_sms_code" class="get_msg_code">[[ sms_code_tip ]]</a>
                             <span class="error_tip" v-show="error_sms_code">[[ error_sms_code_message ]]</span>
 
-                            {{% if sms_code_errmsg %}
+                            {% if sms_code_errmsg %}
                                 <span class="error_tip">{{ sms_code_errmsg }}</span>
                             {% endif %}}
 
